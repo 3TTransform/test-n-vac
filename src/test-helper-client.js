@@ -45,9 +45,16 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region, waitForIn
   /**
    * A function that gets messages from sqs and returns them as an array.
    * @async
+   * @param {number} [waitTimeSeconds=20] The polling interval, ie, the number of seconds to wait to collect sqs messages.
+   * @param {number} [attempts=4] The number of attempts to retrieve the messages from sqs
    */
   const getMessagesFromSQS = async (waitTimeSeconds = 20, attempts = 4) => {
 
+    /**
+     * A function that gets messages from an SQS queue
+     * @async
+     * @param {number} [waitTimeSeconds=20] The polling interval, ie, the number of seconds to wait to collect sqs messages.
+     */
     const checkSQSQueue = async (waitTimeSeconds) => {
       /**
        * @type {ReceiveMessageCommandInput}
@@ -81,7 +88,6 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region, waitForIn
 
   /**
    * Fire an event to the eventBridge
-   *
    * @async
    * @param {string} event The entry to fire as the event, no need to include the event bus name as we generate it at the top of this file
    * @param {string} detailType The detail type of the event
@@ -114,14 +120,12 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region, waitForIn
 
   /**
    * Waits for Event Bridge Rule to be ready
-   *
    * @async
    * @param {number} timeout The maximum time to wait before returning rule not available
   */
   const waitForRule = async (timeout = 60) => {
     /**
      * Checks if Event Bridge Rule is ready to use, by firing events to it and looking for them in the SQS queue.
-     *
      * @async
     */
     const checkRuleReady = async () => {
@@ -149,30 +153,30 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region, waitForIn
     throw new Error(`Rule ${ruleName} did not become ready within ${timeout} seconds`);
   };
 
-  /**
-   * Purges an SQS queue
-   * @async
-   * @param {string} queueUrl The URL of the AWS SQS queue
-   */
-  const purgeQueue = async (queueUrl) => {
-    try {
-      /**
-       * @type {PurgeQueueCommandInput}
-       */
-      const params = {
-        QueueUrl: queueUrl
-      };
+  // /**
+  //  * Purges an SQS queue
+  //  * @async
+  //  * @param {string} queueUrl The URL of the AWS SQS queue
+  //  */
+  // const purgeQueue = async (queueUrl) => {
+  //   try {
+  //     /**
+  //      * @type {PurgeQueueCommandInput}
+  //      */
+  //     const params = {
+  //       QueueUrl: queueUrl
+  //     };
 
-      console.info(`\n > Purging testing queue: ${queueUrl}`);
-      await sqs.send(new PurgeQueueCommand(params));
-      console.info(`\tSQS queue purged!`);
+  //     console.info(`\n > Purging testing queue: ${queueUrl}`);
+  //     await sqs.send(new PurgeQueueCommand(params));
+  //     console.info(`\tSQS queue purged!`);
 
-    } catch (err) {
-      console.error(`Error while purging testing queue: ${err.message}`, err);
-      // fail the test run, as there are issues with the SQS queue
-      throw err;
-    }
-  };
+  //   } catch (err) {
+  //     console.error(`Error while purging testing queue: ${err.message}`, err);
+  //     // fail the test run, as there are issues with the SQS queue
+  //     throw err;
+  //   }
+  // };
 
   /**
    * Creates the aws architecture used for testing events
@@ -251,11 +255,12 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region, waitForIn
       console.info(`\tCreating testing target: ${eventBridgeTargetId}`);
       await eventBridge.send(new PutTargetsCommand(eventBridgeTarget));
 
-      // EB rules can take aorund 60 seconds to be ready to use
+      // EB rules can take around 60 seconds to be ready to use
       await waitForRule();
-      
-      await purgeQueue(sqsQueueUrl);
-      // await new Promise(resolve => setTimeout(resolve, 5000));
+
+      // Queue should be empty before running tests.
+      // await purgeQueue(sqsQueueUrl);
+
       console.info("\n > Running tests");
     } catch (err) {
       console.error(`Error in createTestArchitecture: ${err.message}`, err);
