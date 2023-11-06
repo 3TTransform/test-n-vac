@@ -1,0 +1,14 @@
+{
+  "name": "@3t-transform/test-n-vac",
+  "version": "1.2.3",
+  "main": "src/test-helper-client.js",
+  "repository": "https://bitbucket.org/aisneutron/test-n-vac.git",
+  "author": "3t Transform",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-eventbridge": "^3.245.0",
+    "@aws-sdk/client-sqs": "^3.245.0",
+    "@aws-sdk/client-sts": "^3.245.0",
+    "@aws-sdk/credential-providers": "^3.245.0"
+  }
+}
