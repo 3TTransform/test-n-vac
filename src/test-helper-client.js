@@ -1,5 +1,5 @@
 const { SQSClient, CreateQueueCommand, DeleteQueueCommand, ReceiveMessageCommand } = require("@aws-sdk/client-sqs");
-const { EventBridgeClient, PutRuleCommand, PutTargetsCommand, RemoveTargetsCommand, DeleteRuleCommand, PutEventsCommand } = require("@aws-sdk/client-eventbridge");
+const { EventBridgeClient, PutRuleCommand, PutTargetsCommand, RemoveTargetsCommand, DeleteRuleCommand, PutEventsCommand, DescribeRuleCommand } = require("@aws-sdk/client-eventbridge");
 const { STSClient, GetCallerIdentityCommand } = require("@aws-sdk/client-sts");
 const { fromEnv } = require("@aws-sdk/credential-providers");
 
@@ -134,6 +134,8 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region }) => {
         .catch(err => {
           console.error("Error in createTestArchitecture while creating testing target: ", err);
         });
+
+      await new Promise(resolve => setTimeout(resolve, 60000));
     },
 
     /**
@@ -171,7 +173,7 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region }) => {
      */
     getMessagesFromSQS: async () => {
 
-      const checkSQSQueue = async() => {
+      const checkSQSQueue = async () => {
         /**
          * @type {ReceiveMessageCommandInput}
          */
@@ -181,10 +183,10 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region }) => {
         };
 
         return sqs.send(new ReceiveMessageCommand(params))
-        .then(data => data.Messages)
-        .catch(err => {
-          console.error("Error in getMessagesFromSQS while checking SQS queue: ", err);
-        });
+          .then(data => data.Messages)
+          .catch(err => {
+            console.error("Error in getMessagesFromSQS while checking SQS queue: ", err);
+          });
       };
 
       let outputEvents = await checkSQSQueue();
