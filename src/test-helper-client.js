@@ -21,10 +21,11 @@ const sts = new STSClient(config);
  * @param {string} args.serviceSource The source we look for in resultant events. Used to tag the architecture and build the event pattern
  * @param {string} args.busName The name of the event bridge bus
  * @param {string} args.region The region of the event bridge bus
+ * @param {string} [args.waitForInfrastructure=60000] The amount of time to wait once the infrastructure is created. AWS SQS requires a 1 second wait, and AWS EB Rules require around 1 minute wait.
  *
  * @returns {object} The client with appropriate functions to interact with the testing architecture
  */
-const TestNVacClient = ({ serviceName, serviceSource, busName, region }) => {
+const TestNVacClient = ({ serviceName, serviceSource, busName, region, waitForInfrastructure = 60000 }) => {
   /**
    * @type {string} The URL of the Amazon SQS queue from which messages are received. Queue URLs and names are case-sensitive.
    */
@@ -135,7 +136,7 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region }) => {
           console.error("Error in createTestArchitecture while creating testing target: ", err);
         });
 
-      await new Promise(resolve => setTimeout(resolve, 60000));
+      await new Promise(resolve => setTimeout(resolve, waitForInfrastructure));
     },
 
     /**
