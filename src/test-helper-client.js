@@ -1,5 +1,5 @@
 const { SQSClient, CreateQueueCommand, DeleteQueueCommand, ReceiveMessageCommand } = require("@aws-sdk/client-sqs");
-const { EventBridgeClient, PutRuleCommand, PutTargetsCommand, RemoveTargetsCommand, DeleteRuleCommand, PutEventsCommand, DescribeRuleCommand } = require("@aws-sdk/client-eventbridge");
+const { EventBridgeClient, PutRuleCommand, PutTargetsCommand, RemoveTargetsCommand, DeleteRuleCommand, PutEventsCommand } = require("@aws-sdk/client-eventbridge");
 const { STSClient, GetCallerIdentityCommand } = require("@aws-sdk/client-sts");
 const { fromEnv } = require("@aws-sdk/credential-providers");
 
