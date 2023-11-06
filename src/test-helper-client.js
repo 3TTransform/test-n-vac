@@ -90,10 +90,7 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region, waitForIn
         .catch(err => {
           console.error("Error in createTestArchitecture while creating testing queue: ", err);
         });
-
-      // Wait for 1 second based on second note here: https://docs.aws.amazon.com/cli/latest/reference/sqs/create-queue.html
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
+        
       // Create an eventBridge rule
       /**
        * @type {PutRuleCommandInput}
