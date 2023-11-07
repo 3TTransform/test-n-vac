@@ -21,11 +21,11 @@ const sts = new STSClient(config);
  * @param {string} args.serviceSource The source we look for in resultant events. Used to tag the architecture and build the event pattern
  * @param {string} args.busName The name of the event bridge bus
  * @param {string} args.region The region of the event bridge bus
- * @param {string} [args.waitForInfrastructure=60000] The amount of time to wait once the infrastructure is created. AWS SQS requires a 1 second wait, and AWS EB Rules require around 1 minute wait.
+ * @param {array} [args.detailTypes=[]] The list of detail types that the tested service uses
  *
  * @returns {object} The client with appropriate functions to interact with the testing architecture
  */
-const TestNVacClient = ({ serviceName, serviceSource, busName, region, waitForInfrastructure = 60000 }) => {
+const TestNVacClient = ({ serviceName, serviceSource, busName, region, detailTypes = [] }) => {
   /**
    * @type {string} The URL of the Amazon SQS queue from which messages are received. Queue URLs and names are case-sensitive.
    */
@@ -34,6 +34,7 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region, waitForIn
   const sqsQueueName = serviceName + "-tests-queue-" + randomString;
   const eventBridgeRuleName = serviceName + "-tests-rule-" + randomString;
   const eventBridgeTargetId = serviceName + "-tests-target-" + randomString;
+  const testEventDetailType = `Test Event ${randomString}`;
   /**
    * @type {Record<string, string>} Amazon SQS cost allocation tags
    */
@@ -130,7 +131,7 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region, waitForIn
     */
     const checkRuleReady = async () => {
       try {
-        await fireEvent({}, `Test Event`);
+        await fireEvent({}, testEventDetailType);
         // only retry once as we keep firing events
         const numberOfMessages = (await getMessagesFromSQS(2, 1)).length || 0;
         return numberOfMessages > 0;
@@ -153,30 +154,32 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region, waitForIn
     throw new Error(`Rule ${ruleName} did not become ready within ${timeout} seconds`);
   };
 
-  // /**
-  //  * Purges an SQS queue
-  //  * @async
-  //  * @param {string} queueUrl The URL of the AWS SQS queue
-  //  */
-  // const purgeQueue = async (queueUrl) => {
-  //   try {
-  //     /**
-  //      * @type {PurgeQueueCommandInput}
-  //      */
-  //     const params = {
-  //       QueueUrl: queueUrl
-  //     };
+  /**
+   * Purges an SQS queue
+   * @async
+   * @param {string} queueUrl The URL of the AWS SQS queue
+   */
+  const purgeQueue = async (queueUrl) => {
+    try {
+      /**
+       * @type {PurgeQueueCommandInput}
+       */
+      const params = {
+        QueueUrl: queueUrl
+      };
 
-  //     console.info(`\n > Purging testing queue: ${queueUrl}`);
-  //     await sqs.send(new PurgeQueueCommand(params));
-  //     console.info(`\tSQS queue purged!`);
+      console.info(`\n > Purging testing queue: ${queueUrl}`);
+      await sqs.send(new PurgeQueueCommand(params));
+      // Wait after command issued before sending new events
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      console.info(`\tSQS queue purged!`);
 
-  //   } catch (err) {
-  //     console.error(`Error while purging testing queue: ${err.message}`, err);
-  //     // fail the test run, as there are issues with the SQS queue
-  //     throw err;
-  //   }
-  // };
+    } catch (err) {
+      console.error(`Error while purging testing queue: ${err.message}`, err);
+      // fail the test run, as there are issues with the SQS queue
+      throw err;
+    }
+  };
 
   /**
    * Creates the aws architecture used for testing events
@@ -220,6 +223,10 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region, waitForIn
       sqsQueueUrl = (await sqs.send(new CreateQueueCommand(params))).QueueUrl;
 
       // Create an eventBridge rule
+      const eventDetailType = (detailTypes.length > 0) ?
+        `, "detail-type": ["${testEventDetailType}","${detailTypes.join("\",\"")}"]`
+        : ""
+
       /**
        * @type {PutRuleCommandInput}
        */
@@ -229,6 +236,7 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region, waitForIn
             "source": [
               "${serviceSource}"
             ]
+            ${eventDetailType}
           }`,
         EventBusName: busName,
         tags
@@ -259,7 +267,7 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region, waitForIn
       await waitForRule();
 
       // Queue should be empty before running tests.
-      // await purgeQueue(sqsQueueUrl);
+      await purgeQueue(sqsQueueUrl);
 
       console.info("\n > Running tests");
     } catch (err) {
