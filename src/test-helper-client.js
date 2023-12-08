@@ -170,9 +170,6 @@ const TestNVacClient = ({ serviceName, serviceSource, busName, region, detailTyp
 
       console.info("\n > Purging testing queue");
       await sqs.send(new PurgeQueueCommand(params));
-      // Wait after command issued before sending new events
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      console.info("\tSQS queue purged!");
 
     } catch (err) {
       console.error(`Error while purging testing queue: ${err.message}`, err);
